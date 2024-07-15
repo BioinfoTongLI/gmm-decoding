@@ -1,16 +1,16 @@
 #!/usr/bin/env/ nextflow
 
 process Spotiflow_call_peaks {
-    cache true
+    debug false 
 
     label "gpu_normal"
 
-    container 'bioinfotongli/spotiflow:latest'
+    container 'bioinfotongli/decoding:spotiflow'
     containerOptions "${workflow.containerEngine == 'singularity' ? '--nv':'--gpus all'}"
     storeDir params.out_dir
 
     input:
-    tuple val(meta), path(root)
+    tuple val(meta), path(img)
 
     output:
     tuple val(meta), path("peaks_Y*_X*.csv"), emit: peaks
@@ -19,7 +19,7 @@ process Spotiflow_call_peaks {
     def args = task.ext.args ?: ''
     """
     Spotiflow_call_peaks.py run \
-        -image_path ${root}/0 \
+        -image_path ${img} \
         ${args}
     """
 }
@@ -29,7 +29,7 @@ process Spotiflow_merge_peaks {
     debug true
     cache true
 
-    container 'bioinfotongli/spotiflow:latest'
+    container 'bioinfotongli/decoding:spotiflow'
     storeDir params.out_dir
 
     input:
