@@ -1,7 +1,6 @@
 #!/usr/bin/env/ nextflow
 
-// Copyright (C) 2020 Tong LI <tongli.bioinfo@protonmail.com>
-
+include {Spotiflow_run} from './workflow/workflow_peak_calling.nf'
 nextflow.enable.dsl=2
 
 // minimal parameter set
@@ -332,4 +331,9 @@ workflow Decode {
     /*for_decoding.view()*/
     Decode_peaks(for_decoding, params.chunk_size)
     Filter_decoded_peaks(Decode_peaks.out.decoded_peaks, params.prob_threshold)
+}
+
+
+workflow Spotiflow {
+    Spotiflow_run(channel.from([[["test":"test"], file(params.ome_zarr)]]))
 }
