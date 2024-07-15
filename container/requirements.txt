@@ -21,3 +21,4 @@ openpyxl==3.1.2
 starfish==0.2.2
 scikit-image==0.22.0
 spotiflow==0.2.0
+shapely==2.0.5
