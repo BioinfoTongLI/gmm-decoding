@@ -6,6 +6,7 @@
 # Distributed under terms of the BSD-3 license.
 #
 
-
-docker build -t bioinfotongli/decoding:latest .
-docker push bioinfotongli/decoding:latest
+#TAG="latest"
+TAG="spotiflow"
+docker build -t bioinfotongli/decoding:$TAG .
+docker push bioinfotongli/decoding:$TAG
