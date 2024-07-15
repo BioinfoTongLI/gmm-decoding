@@ -1,11 +1,34 @@
-This code implements probabilistic decoding of image-based spatial
-transcriptomics via a novel re-parametrized Gaussian Mixture Model (GMM)
-implemented using stochastic variational inference in [pyro](https://pyro.ai/).
+## Image-based spatial transcritomics RNA spot decoding workflow 
 
-To get started, please explore the Jupyter Notebook
-[example_iss_mousebrain.ipynb](example_iss_mousebrain.ipynb), which provides an
-example of how the code can be used to decode a
-ISS mouse brain dataset.
+This workflow includes:
+- Raw image enchancement with [White Tophat filtering](https://scikit-image.org/docs/stable/api/skimage.morphology.html#skimage.morphology.white_tophat)
+- Peak-calling with [TrackPy](http://soft-matter.github.io/trackpy/dev/generated/trackpy.locate.html#trackpy.locate)
+- PoSTcode decoding:
+    ![plot](./PoSTcode.png)
+    which is a method for decoding image-based spatial transcriptomics based on a re-parametrised matrix-variate Gaussian mixture model,
 
-The code has been tested with python 3.6.12 and its requirements can be
-fulfilled by running `python3 -m pip install -r requirements.txt`
+Prerequisite:
+- Nextflow
+- Docker/singularity
+
+Usage (TODO):
+
+```bash
+NXF_OPTS='-Dleveldb.mmap=false' NXF_VER=23.10.1 \
+    nextflow -trace nextflow.executor run BioinfoTongLI/workflow-decoding -r master \
+        -profile local \
+        -params-file decoding.yaml
+```
+An example of the parameter input file is 
+```yaml
+codebook : [codebook.csv]
+out_dir : [output folder]
+ome_zarr : [ome-zarr path of a registered multicycle multichannel stack]
+channel_map : "{'Cy5':'A','AF488':'G','Cy3':'C','Atto425':'T','AF750':'T'}"
+rna_spot_size : [5]
+anchor_ch_indexes : 1
+prob_threshold : 0.9
+trackpy_percentile : [90]
+trackpy_separation : 3
+codebook_sep : ','
+```
