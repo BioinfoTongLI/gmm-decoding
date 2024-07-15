@@ -36,18 +36,21 @@ def max_image_size(image):
     return max_size
 
 
-def spotiflow_call(block, block_info, model, edge):
+def spotiflow_call(block, block_info, model_name, edge):
+    model = Spotiflow.from_pretrained(model_name)
     print(block_info)
     try:
         y_min = block_info[None]["array-location"][0][0]
         x_min = block_info[None]["array-location"][1][0]
-        print(y_min, x_min)
+        
+        y_chunk_loc = block_info[None]["chunk-location"][0]
+        x_chunk_loc = block_info[None]["chunk-location"][1]
     except:
         pass
     peaks, _  = model.predict(block)
     if len(peaks) > 0:
-        peaks[:, 0] += y_min - edge
-        peaks[:, 1] += x_min - edge
+        peaks[:, 0] += y_min - y_chunk_loc * 2 * edge
+        peaks[:, 1] += x_min - x_chunk_loc * 2 * edge
 
         # Serialize peaks to disk
         y_min_str = str(y_min).zfill(5)  # pad with zeros for consistent file names
@@ -58,12 +61,11 @@ def spotiflow_call(block, block_info, model, edge):
             writer = csv.writer(f)
             writer.writerow(['y', 'x'])  # write column names
             writer.writerows(peaks)
+        del peaks, _
     return block
 
 
-def main(image_path:str, ch_index:int=1, model_name:str="general", depth:int = 6):
-    model = Spotiflow.from_pretrained(model_name)
-
+def main(image_path:str, ch_index:int=2, model_name:str="general", depth:int = 10):
     hyperstack = AICSImage(image_path)
     print(hyperstack.dims)
 
@@ -76,12 +78,12 @@ def main(image_path:str, ch_index:int=1, model_name:str="general", depth:int = 6
             # max_size = max_image_size(img)
             # print(max_size)
             # img = img.rechunk((max_size, max_size))
-            img = img.rechunk((200, 200))
+            img = img.rechunk((2000, 2000))
 
             # Predict
             points = img.map_overlap(
                 spotiflow_call,
-                model=model,
+                model_name=model_name,
                 depth=depth,
                 edge=depth,
                 dtype=np.float16
