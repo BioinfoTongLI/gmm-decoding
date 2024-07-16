@@ -10,16 +10,18 @@ process Spotiflow_call_peaks {
     storeDir params.out_dir
 
     input:
-    tuple val(meta), path(img)
-
+    tuple val(meta), path(img), val(ch_ind)
+    
     output:
-    tuple val(meta), path("peaks_Y*_X*.csv"), emit: peaks
+    tuple val(meta), path("${meta.id[0]}_ch_${ch_ind}/ch_${ch_ind}_peaks_Y*_X*.csv"), val(ch_ind), emit: peaks
 
     script:
     def args = task.ext.args ?: ''
     """
     Spotiflow_call_peaks.py run \
         -image_path ${img} \
+        -out_dir ${meta.id[0]} \
+        --ch_ind ${ch_ind} \
         ${args}
     """
 }
@@ -27,23 +29,24 @@ process Spotiflow_call_peaks {
 
 process Spotiflow_merge_peaks {
     debug true
-    cache true
 
     container 'bioinfotongli/decoding:spotiflow'
     storeDir params.out_dir
 
     input:
-    tuple val(meta), path(csvs)
+    tuple val(meta), path(csvs), val(ch_ind)
 
     output:
-    tuple val(meta), path("merged_peaks.wkt"), emit: merged_peaks
+    tuple val(meta), path("${meta.id[0]}_merged_peaks_ch_${ch_ind}.wkt"), val(ch_ind), emit: merged_peaks
 
     script:
     def args = task.ext.args ?: ''
     """
     Spotiflow_post_process.py run \
-        ${args} \
         ${csvs} \
+        --ch_ind ${ch_ind} \
+        --prefix ${meta.id[0]} \
+        ${args} \
     """
 }
 
@@ -53,5 +56,5 @@ workflow Spotiflow_run {
 
     main:
     Spotiflow_call_peaks(zarrs)
-    Spotiflow_merge_peaks(Spotiflow_call_peaks.out.peaks.collect())
+    Spotiflow_merge_peaks(Spotiflow_call_peaks.out.peaks)
 }
