@@ -1,7 +1,5 @@
 #!/usr/bin/env/ nextflow
-
 include {Spotiflow_run} from './workflow/workflow_peak_calling.nf'
-nextflow.enable.dsl=2
 
 // minimal parameter set
 params.ome_zarr = ''
@@ -336,5 +334,5 @@ workflow Decode {
 
 
 workflow Spotiflow {
-    Spotiflow_run(channel.from([[["test":"test"], file(params.ome_zarr)]]))
+    Spotiflow_run(channel.from(params.ome_zarr).combine(channel.from(params.ch_ind)))
 }
