@@ -15,30 +15,12 @@ import torch
 import numpy as np
 import math
 import csv
+import os
 
 
-def max_image_size(image):
-    # Get the current device
-    device = torch.cuda.current_device()
-
-    # Get available memory in bytes
-    available_memory = torch.cuda.get_device_properties(device).total_memory - torch.cuda.memory_allocated(device)
-
-    # Get the size of the data type in bytes
-    dtype_size = np.dtype(image.dtype).itemsize
-
-    # Calculate the maximum number of pixels that can fit into the available memory
-    max_pixels = available_memory / dtype_size
-
-    # The maximum size of a square image is the square root of the maximum number of pixels
-    max_size = int(math.sqrt(max_pixels))
-
-    return max_size
-
-
-def spotiflow_call(block, block_info, model_name, edge):
+def spotiflow_call(block, block_info, model_name, edge, final_dir, ch_index):
     model = Spotiflow.from_pretrained(model_name)
-    print(block_info)
+    # print(block_info)
     try:
         y_min = block_info[None]["array-location"][0][0]
         x_min = block_info[None]["array-location"][1][0]
@@ -57,7 +39,7 @@ def spotiflow_call(block, block_info, model_name, edge):
         x_min_str = str(x_min).zfill(5)
 
         # Serialize peaks to disk as CSV
-        with open(f'peaks_Y{y_min_str}_X{x_min_str}.csv', 'w', newline='') as f:
+        with open(f"{final_dir}/ch_{ch_index}_peaks_Y{y_min_str}_X{x_min_str}.csv", 'w', newline='') as f:
             writer = csv.writer(f)
             writer.writerow(['y', 'x'])  # write column names
             writer.writerows(peaks)
@@ -65,20 +47,22 @@ def spotiflow_call(block, block_info, model_name, edge):
     return block
 
 
-def main(image_path:str, ch_index:int=2, model_name:str="general", depth:int = 10):
+def main(image_path:str, out_dir:str,
+         ch_ind:int=2, model_name:str="general",
+         depth:int = 10, chunk_size:int=2000):
     hyperstack = AICSImage(image_path)
     print(hyperstack.dims)
 
+    # Create the output directory if it doesn't exist
+    final_dir = f"{out_dir}_ch_{ch_ind}"
+    if not os.path.exists(final_dir):
+        os.makedirs(final_dir)
+
     with Client(processes=True, threads_per_worker=1, n_workers=1): #memory_limit='20GB'):
         for t in range(hyperstack.dims.T):
-            img = hyperstack.get_image_dask_data("ZYX", T=t, C=ch_index)
+            img = hyperstack.get_image_dask_data("ZYX", T=t, C=ch_ind)
             img = np.max(img, axis=0)
-            print(img.shape)
-            # Get the maximum size of the image that can fit into GPU memory (WIP)
-            # max_size = max_image_size(img)
-            # print(max_size)
-            # img = img.rechunk((max_size, max_size))
-            img = img.rechunk((2000, 2000))
+            img = img.rechunk((chunk_size, chunk_size))
 
             # Predict
             points = img.map_overlap(
@@ -86,9 +70,11 @@ def main(image_path:str, ch_index:int=2, model_name:str="general", depth:int = 1
                 model_name=model_name,
                 depth=depth,
                 edge=depth,
+                final_dir=final_dir,
+                ch_index=ch_ind,
                 dtype=np.float16
             )
-            points.compute()
+            _ = points.compute()
 
 
 if __name__ == "__main__":

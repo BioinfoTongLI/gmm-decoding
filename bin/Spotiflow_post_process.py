@@ -14,9 +14,8 @@ from shapely.geometry import Point, MultiPoint
 from shapely.ops import unary_union
 
 
-def main(*csvs, peak_radius: float = 1.5):
+def main(*csvs, ch_ind:int, prefix: str="merged", peak_radius: float = 1.5):
     df = dd.read_csv(csvs).compute()
-    print(df.shape)
     points= []
     for coord in df.values:
         points.append(Point(coord[1], coord[0]))
@@ -27,10 +26,9 @@ def main(*csvs, peak_radius: float = 1.5):
     merged = unary_union(buffers)
 
     peaks = MultiPoint([g.centroid for g in merged.geoms])
-    print(len(peaks.geoms))
 
     # Dump the merged multipolygon in WKT format
-    with open("merged_peaks.wkt", "w") as file:
+    with open(f"{prefix}_merged_peaks_ch_{ch_ind}.wkt", "w") as file:
         file.write(peaks.wkt)
 
 
