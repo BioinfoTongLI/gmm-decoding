@@ -19,6 +19,6 @@ ome-zarr==0.8.0
 openpyxl==3.1.2
 
 starfish==0.2.2
-scikit-image==0.22.0
+scikit-image==0.24.0
 spotiflow==0.2.0
 shapely==2.0.5
